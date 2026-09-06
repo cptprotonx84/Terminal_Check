@@ -497,10 +497,22 @@ export default function App() {
                   return (
                     <motion.section 
                       key={category.id}
-                      initial={{ opacity: 0, x: 20 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      exit={{ opacity: 0, x: -20 }}
-                      transition={{ duration: 0.3, ease: "easeOut" }}
+                      initial={{ opacity: 0, skewX: 3, filter: 'brightness(2.5)' }}
+                      animate={{ 
+                        opacity: [0, 1, 0.4, 1, 0.9, 1],
+                        skewX: [3, -2, 1.5, -0.5, 0],
+                        x: [4, -3, 2, -1, 0],
+                        y: [5, -2, 1, -1, 0],
+                        filter: [
+                          'brightness(2.5) hue-rotate(15deg)', 
+                          'brightness(0.5)', 
+                          'brightness(1.8)', 
+                          'brightness(0.9)', 
+                          'brightness(1)'
+                        ]
+                      }}
+                      exit={{ opacity: 0, x: -4, y: -5, filter: 'brightness(3)', transition: { duration: 0.15 } }}
+                      transition={{ duration: 0.35, times: [0, 0.2, 0.4, 0.6, 1], ease: "easeInOut" }}
                       className="relative"
                     >
                       {/* Category Header */}

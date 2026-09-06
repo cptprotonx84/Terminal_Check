@@ -49,11 +49,11 @@
 
   .pagination-recess {
     box-shadow: 
-      inset 0 20px 40px rgba(0,0,0,0.95),
-      inset 0 4px 12px rgba(0,0,0,1),
-      inset 0 -2px 5px rgba(255,255,255,0.03),
+      inset 0 8px 24px rgba(0,0,0,0.95),
+      inset 0 2px 6px rgba(0,0,0,1),
+      inset 0 0 0 1px rgba(0,0,0,0.8),
       0 1px 1px rgba(255,255,255,0.1);
-    background-color: rgba(3, 3, 3, 0.85);
+    background-color: rgba(8, 8, 8, 0.8);
   }
 
   /* CRT Screen Containers */
