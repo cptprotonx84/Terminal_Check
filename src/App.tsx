@@ -416,9 +416,29 @@ export default function App() {
           <div className="crt-static"></div>
           <div className="crt-vignette"></div>
           
-          <div className="relative z-10 p-4 sm:p-8 overflow-y-auto w-full h-full flex flex-col custom-scrollbar">
-            
-            {/* Header */}
+          <AnimatePresence mode="wait">
+            <motion.div 
+              key={categories[currentPageIndex]?.id || 'empty'}
+              initial={{ opacity: 0, skewX: 3, filter: 'brightness(2.5)' }}
+              animate={{ 
+                opacity: [0, 1, 0.4, 1, 0.9, 1],
+                skewX: [3, -2, 1.5, -0.5, 0],
+                x: [4, -3, 2, -1, 0],
+                y: [5, -2, 1, -1, 0],
+                filter: [
+                  'brightness(2.5) hue-rotate(15deg)', 
+                  'brightness(0.5)', 
+                  'brightness(1.8)', 
+                  'brightness(0.9)', 
+                  'brightness(1)'
+                ]
+              }}
+              exit={{ opacity: 0, x: -4, y: -5, filter: 'brightness(3)', transition: { duration: 0.15 } }}
+              transition={{ duration: 0.35, times: [0, 0.2, 0.4, 0.6, 1], ease: "easeInOut" }}
+              className="relative z-10 p-4 sm:p-8 overflow-y-auto w-full h-full flex flex-col custom-scrollbar"
+            >
+              
+              {/* Header */}
             <header className={`flex flex-col sm:flex-row items-start sm:items-center justify-between border-b-2 ${isLateNight ? 'border-red-500/50' : 'border-green-500/50'} pb-6 mb-10 mt-2`}>
               <div className="flex items-center gap-4 w-full sm:w-auto">
                 <motion.div 
@@ -487,35 +507,15 @@ export default function App() {
 
             {/* Task List */}
             <div className="flex-1 pb-16">
-              <AnimatePresence mode="wait">
-                {categories.length > 0 && categories[currentPageIndex] && (() => {
-                  const category = categories[currentPageIndex];
-                  const completedCount = category.tasks.filter(t => t.completed).length;
-                  const totalCount = category.tasks.length;
-                  const isFullyComplete = completedCount === totalCount && totalCount > 0;
-                  
-                  return (
-                    <motion.section 
-                      key={category.id}
-                      initial={{ opacity: 0, skewX: 3, filter: 'brightness(2.5)' }}
-                      animate={{ 
-                        opacity: [0, 1, 0.4, 1, 0.9, 1],
-                        skewX: [3, -2, 1.5, -0.5, 0],
-                        x: [4, -3, 2, -1, 0],
-                        y: [5, -2, 1, -1, 0],
-                        filter: [
-                          'brightness(2.5) hue-rotate(15deg)', 
-                          'brightness(0.5)', 
-                          'brightness(1.8)', 
-                          'brightness(0.9)', 
-                          'brightness(1)'
-                        ]
-                      }}
-                      exit={{ opacity: 0, x: -4, y: -5, filter: 'brightness(3)', transition: { duration: 0.15 } }}
-                      transition={{ duration: 0.35, times: [0, 0.2, 0.4, 0.6, 1], ease: "easeInOut" }}
-                      className="relative"
-                    >
-                      {/* Category Header */}
+              {categories.length > 0 && categories[currentPageIndex] && (() => {
+                const category = categories[currentPageIndex];
+                const completedCount = category.tasks.filter(t => t.completed).length;
+                const totalCount = category.tasks.length;
+                const isFullyComplete = completedCount === totalCount && totalCount > 0;
+                
+                return (
+                  <section className="relative">
+                    {/* Category Header */}
                       <div className="flex items-center gap-4 mb-4">
                         <h2 className={`text-xl sm:text-2xl font-bold border-l-4 pl-3 uppercase tracking-wider
                           ${isFullyComplete 
@@ -545,17 +545,17 @@ export default function App() {
                           ))}
                         </div>
                       </div>
-                    </motion.section>
+                    </section>
                   );
                 })()}
-              </AnimatePresence>
             </div>
             
             {/* Footer */}
             <footer className={`mt-8 pt-8 border-t text-center text-xs opacity-60 pb-8 ${isLateNight ? 'border-red-500/30' : 'border-green-500/30'}`}>
               <p>End of file. All data persisted locally.</p>
             </footer>
-          </div>
+            </motion.div>
+          </AnimatePresence>
         </div>
 
         {/* Hardware Control Strip (Pagination) */}
@@ -603,7 +603,7 @@ export default function App() {
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               placeholder="Enter operation notes..."
-              className={`flex-1 w-full bg-black/40 border border-zinc-700/50 rounded p-3 text-sm font-mono text-zinc-300 placeholder-zinc-600 focus:outline-none transition-all resize-none shadow-inner ${isLateNight ? 'focus:border-red-500/50 focus:ring-1 focus:ring-red-500/30' : 'focus:border-green-500/50 focus:ring-1 focus:ring-green-500/30'}`}
+              className={`flex-1 w-full bg-[#050a05] border border-zinc-700/50 rounded p-3 text-sm font-mono placeholder-zinc-700 focus:outline-none transition-all resize-none shadow-inner ${isLateNight ? 'text-red-500 text-glow-red focus:border-red-500/50 focus:ring-1 focus:ring-red-500/30' : 'text-green-500 text-glow focus:border-green-500/50 focus:ring-1 focus:ring-green-500/30'}`}
             />
           </div>
 
