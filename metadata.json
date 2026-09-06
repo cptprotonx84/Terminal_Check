@@ -1,0 +1,6 @@
+{
+  "name": "Project Handoff Checklist",
+  "description": "A green phosphorescent retro-themed task management checklist with offline data syncing and smooth animations.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
