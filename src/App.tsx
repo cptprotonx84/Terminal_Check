@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'motion/react';
-import { Check, Terminal, Moon, Sun } from 'lucide-react';
+import { motion, AnimatePresence, useReducedMotion } from 'motion/react';
+import { Check, Terminal, Moon, Sun, Download, Upload } from 'lucide-react';
 
 type Task = {
   id: string;
@@ -184,6 +184,9 @@ export default function App() {
   const [newTaskCategory, setNewTaskCategory] = useState("phase1");
   const [projectName, setProjectName] = useState("Project Handoff");
   const [isEditingName, setIsEditingName] = useState(false);
+  const [backupStatus, setBackupStatus] = useState<string | null>(null);
+  const [pendingBackupData, setPendingBackupData] = useState<any | null>(null);
+  const shouldReduceMotion = useReducedMotion();
 
   useEffect(() => {
     const savedData = localStorage.getItem('project-handoff-tasks');
@@ -397,6 +400,83 @@ export default function App() {
     e.target.value = '';
   };
 
+  const handleExportBackup = () => {
+    const backupData = {
+      schemaVersion: 1,
+      exportedAt: new Date().toISOString(),
+      projectName,
+      categories,
+      notes,
+      isLateNight,
+      currentPageIndex
+    };
+    
+    const blob = new Blob([JSON.stringify(backupData, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${projectName.replace(/[^a-z0-9]/gi, '_').toLowerCase()}_backup.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
+  const handleImportBackup = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      try {
+        const text = event.target?.result as string;
+        const data = JSON.parse(text);
+        
+        if (data.schemaVersion !== 1 || !data.categories || !data.projectName) {
+          setBackupStatus("ERROR: INVALID BACKUP SCHEMA");
+          setTimeout(() => setBackupStatus(null), 4000);
+          return;
+        }
+
+        setPendingBackupData(data);
+        setBackupStatus(null);
+      } catch (err) {
+        setBackupStatus("ERROR: MALFORMED JSON DATA");
+        setTimeout(() => setBackupStatus(null), 4000);
+      }
+    };
+    reader.readAsText(file);
+    e.target.value = '';
+  };
+
+  const confirmImportBackup = () => {
+    if (!pendingBackupData) return;
+    
+    const { projectName: pName, categories: pCats, notes: pNotes, isLateNight: pNight, currentPageIndex: pIndex } = pendingBackupData;
+    
+    setProjectName(pName);
+    setCategories(pCats);
+    setNotes(pNotes || "");
+    setIsLateNight(!!pNight);
+    
+    const safeIndex = Math.max(0, Math.min(pCats.length - 1, pIndex || 0));
+    setCurrentPageIndex(safeIndex);
+    
+    localStorage.setItem('project-handoff-tasks', JSON.stringify(pCats));
+    localStorage.setItem('project-handoff-notes', pNotes || "");
+    localStorage.setItem('project-handoff-name', pName);
+    localStorage.setItem('project-night-mode', (!!pNight).toString());
+    
+    setPendingBackupData(null);
+    setBackupStatus("BACKUP RESTORED SUCCESSFULLY");
+    setTimeout(() => setBackupStatus(null), 3000);
+  };
+
+  const cancelImportBackup = () => {
+    setPendingBackupData(null);
+    setBackupStatus(null);
+  };
+
   useEffect(() => {
     if (categories[currentPageIndex]) {
       setNewTaskCategory(categories[currentPageIndex].id);
@@ -419,8 +499,8 @@ export default function App() {
           <AnimatePresence mode="wait">
             <motion.div 
               key={categories[currentPageIndex]?.id || 'empty'}
-              initial={{ opacity: 0, skewX: 3, filter: 'brightness(2.5)' }}
-              animate={{ 
+              initial={shouldReduceMotion ? { opacity: 0 } : { opacity: 0, skewX: 3, filter: 'brightness(2.5)' }}
+              animate={shouldReduceMotion ? { opacity: 1 } : { 
                 opacity: [0, 1, 0.4, 1, 0.9, 1],
                 skewX: [3, -2, 1.5, -0.5, 0],
                 x: [4, -3, 2, -1, 0],
@@ -433,8 +513,8 @@ export default function App() {
                   'brightness(1)'
                 ]
               }}
-              exit={{ opacity: 0, x: -4, y: -5, filter: 'brightness(3)', transition: { duration: 0.15 } }}
-              transition={{ duration: 0.35, times: [0, 0.2, 0.4, 0.6, 1], ease: "easeInOut" }}
+              exit={shouldReduceMotion ? { opacity: 0, transition: { duration: 0.15 } } : { opacity: 0, x: -4, y: -5, filter: 'brightness(3)', transition: { duration: 0.15 } }}
+              transition={shouldReduceMotion ? { duration: 0.3 } : { duration: 0.35, times: [0, 0.2, 0.4, 0.6, 1], ease: "easeInOut" }}
               className="relative z-10 p-4 sm:p-8 overflow-y-auto w-full h-full flex flex-col custom-scrollbar"
             >
               
@@ -484,19 +564,35 @@ export default function App() {
               </div>
               
               <div className="flex items-center gap-2 mt-4 sm:mt-0 flex-wrap justify-end">
-                <label className={`cursor-pointer flex items-center gap-2 px-3 py-2 border ${isLateNight ? 'border-red-500/50 hover:bg-red-500/10' : 'border-green-500/50 hover:bg-green-500/10'} transition-colors uppercase text-xs sm:text-sm rounded-sm`}>
-                  IMPORT
+                <label className={`cursor-pointer flex items-center gap-2 px-3 py-2 border ${isLateNight ? 'border-red-500/50 hover:bg-red-500/10' : 'border-green-500/50 hover:bg-green-500/10'} transition-colors uppercase text-xs sm:text-sm rounded-sm`} title="Import Markdown Handoff">
+                  IMPORT TXT
                   <input type="file" accept=".txt" className="hidden" onChange={handleImport} />
                 </label>
                 <button
                   onClick={handleExport}
                   className={`flex items-center gap-2 px-3 py-2 border ${isLateNight ? 'border-red-500/50 hover:bg-red-500/10' : 'border-green-500/50 hover:bg-green-500/10'} transition-colors uppercase text-xs sm:text-sm rounded-sm`}
+                  title="Export Markdown Handoff"
                 >
-                  EXPORT
+                  EXPORT TXT
                 </button>
+                <div className={`hidden lg:block mx-1 w-px h-6 opacity-30 ${isLateNight ? 'bg-red-500' : 'bg-green-500'}`}></div>
+                <label className={`cursor-pointer flex items-center gap-2 px-3 py-2 border ${isLateNight ? 'border-red-500/50 hover:bg-red-500/10' : 'border-green-500/50 hover:bg-green-500/10'} transition-colors uppercase text-xs sm:text-sm rounded-sm`} title="Import JSON Backup">
+                  <Upload className="w-4 h-4 hidden sm:block" />
+                  RESTORE
+                  <input type="file" accept=".json" className="hidden" onChange={handleImportBackup} />
+                </label>
+                <button
+                  onClick={handleExportBackup}
+                  className={`flex items-center gap-2 px-3 py-2 border ${isLateNight ? 'border-red-500/50 hover:bg-red-500/10' : 'border-green-500/50 hover:bg-green-500/10'} transition-colors uppercase text-xs sm:text-sm rounded-sm`}
+                  title="Export JSON Backup"
+                >
+                  <Download className="w-4 h-4 hidden sm:block" />
+                  BACKUP
+                </button>
+                <div className={`hidden sm:block mx-1 w-px h-6 opacity-30 ${isLateNight ? 'bg-red-500' : 'bg-green-500'}`}></div>
                 <button
                   onClick={() => setIsLateNight(!isLateNight)}
-                  className={`flex items-center gap-2 px-3 py-2 border ${isLateNight ? 'border-red-500/50 hover:bg-red-500/10' : 'border-green-500/50 hover:bg-green-500/10'} transition-colors uppercase text-xs sm:text-sm rounded-sm ml-2`}
+                  className={`flex items-center gap-2 px-3 py-2 border ${isLateNight ? 'border-red-500/50 hover:bg-red-500/10' : 'border-green-500/50 hover:bg-green-500/10'} transition-colors uppercase text-xs sm:text-sm rounded-sm ml-0 sm:ml-2`}
                   aria-label="Toggle Late Night Mode"
                 >
                   {isLateNight ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
@@ -504,6 +600,36 @@ export default function App() {
                 </button>
               </div>
             </header>
+            
+            {backupStatus && (
+              <div className={`mb-6 p-4 border font-bold text-sm tracking-wider uppercase animate-pulse ${isLateNight ? 'bg-red-950/40 border-red-500 text-red-500 text-glow-red' : 'bg-green-950/40 border-green-500 text-green-500 text-glow'}`}>
+                {backupStatus}
+              </div>
+            )}
+
+            {pendingBackupData && (
+              <div className={`mb-6 p-6 border rounded-sm flex flex-col gap-4 ${isLateNight ? 'bg-black/80 border-red-500/80 shadow-[0_0_15px_rgba(239,68,68,0.2)]' : 'bg-black/80 border-green-500/80 shadow-[0_0_15px_rgba(34,197,94,0.2)]'}`}>
+                <h3 className={`text-lg font-bold uppercase tracking-widest flex items-center gap-2 ${isLateNight ? 'text-red-400' : 'text-green-400'}`}>
+                  <Terminal className="w-5 h-5" />
+                  WARNING: OVERWRITE DETECTED
+                </h3>
+                <p className="opacity-80 text-sm font-mono leading-relaxed">
+                  You are about to restore a complete project backup. This will permanently overwrite the current active session data.
+                  <br /><br />
+                  <span className="opacity-60 text-xs">TARGET:</span> {pendingBackupData.projectName}
+                  <br />
+                  <span className="opacity-60 text-xs">TIMESTAMP:</span> {new Date(pendingBackupData.exportedAt).toLocaleString()}
+                </p>
+                <div className="flex gap-4 mt-2">
+                  <button onClick={confirmImportBackup} className={`px-4 py-2 border font-bold uppercase text-xs transition-colors ${isLateNight ? 'bg-red-500/20 border-red-500 hover:bg-red-500/40' : 'bg-green-500/20 border-green-500 hover:bg-green-500/40'}`}>
+                    CONFIRM OVERWRITE
+                  </button>
+                  <button onClick={cancelImportBackup} className={`px-4 py-2 border font-bold uppercase text-xs transition-colors ${isLateNight ? 'border-red-500/40 text-red-500/60 hover:bg-red-500/10' : 'border-green-500/40 text-green-500/60 hover:bg-green-500/10'}`}>
+                    ABORT
+                  </button>
+                </div>
+              </div>
+            )}
 
             {/* Task List */}
             <div className="flex-1 pb-16">
